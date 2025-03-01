@@ -142,11 +142,13 @@
             text-align: left;
             font-size: 12px;
         }
-        .payout-item span {
-            color: #d4a017; /* Ensure spans stay gold */
+        .no-link {
+            color: #d4a017 !important; /* Force gold */
             -webkit-user-select: none; /* Prevent selection */
             -webkit-touch-callout: none; /* Disable call link */
-            text-decoration: none; /* No underline */
+            text-decoration: none !important; /* No underline */
+            -webkit-text-decoration: none !important; /* Safari-specific */
+            pointer-events: none; /* Disable clicks */
         }
         @media (max-width: 430px) {
             body {
@@ -244,11 +246,6 @@
                 -webkit-touch-callout: none;
                 color: #d4a017 !important;
             }
-            .payout-item span {
-                color: #d4a017 !important; /* Reinforce gold */
-                -webkit-text-decoration: none; /* No blue underline */
-                text-decoration: none;
-            }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
@@ -274,7 +271,7 @@
         <div class="payout-item">5 👑: 1000<br>1★: 5000<br>2★: 25000</div>
         <div class="payout-item">5 ⚔️/🛡️: 200<br>1★: 1000<br>2★: 5000</div>
         <div class="payout-item">Treasury: 150<br>1★: 750<br>2★: 3750</div>
-        <div class="payout-item">Wheel: <span>50–500</span><br>1★: <span>250–2500</span><br>2★: <span>1250–12500</span></div>
+        <div class="payout-item">Wheel: 50–500<br>1★: <span class="no-link">250–2500</span><br>2★: <span class="no-link">1250–12500</span></div>
     </div>
 
     <script>
