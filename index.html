@@ -14,7 +14,7 @@
             padding: 20px;
         }
         h1 {
-            font-size: 36px; /* Default desktop size */
+            font-size: 36px;
             margin: 10px 0;
         }
         #slot-machine {
@@ -124,14 +124,14 @@
             background: linear-gradient(#e6b923, #d4a017);
             box-shadow: 0 0 15px #ffd700;
         }
-        #odds {
+        #odds, #payouts {
             margin: 20px auto;
             width: 540px;
             display: flex;
             justify-content: space-between;
             font-size: 16px;
         }
-        .odds-item {
+        .odds-item, .payout-item {
             background: linear-gradient(#3d2a17, #1a0f07);
             padding: 10px;
             border: 2px solid #d4a017;
@@ -139,6 +139,8 @@
             width: 80px;
             color: #d4a017;
             box-shadow: inset 0 0 5px rgba(212, 160, 23, 0.5);
+            text-align: left;
+            font-size: 12px; /* Smaller for payouts to fit */
         }
         @media (max-width: 430px) {
             body {
@@ -151,8 +153,8 @@
                 overflow-x: hidden;
             }
             h1 {
-                font-size: 6vw; /* Smaller to fit "Dragon's Hoard Slot Machine" on one line */
-                white-space: nowrap; /* Forces single line */
+                font-size: 6vw;
+                white-space: nowrap;
             }
             #slot-machine {
                 grid-template-rows: repeat(3, 16vw);
@@ -220,16 +222,17 @@
             button:hover, button:active {
                 box-shadow: 0 0 2vw #ffd700;
             }
-            #odds {
+            #odds, #payouts {
                 width: 85vw;
                 margin: 5px auto;
                 font-size: 2vw;
             }
-            .odds-item {
+            .odds-item, .payout-item {
                 padding: 1vw;
                 border: 0.3vw solid #d4a017;
                 border-radius: 0.8vw;
                 width: 14vw;
+                font-size: 1.8vw;
             }
         }
     </style>
@@ -249,11 +252,18 @@
         <div class="odds-item">🛡️ 16.1%</div>
         <div class="odds-item">🪙 16.1%</div>
         <div class="odds-item">🐉 12.9%</div>
-        <div class="odds-item">⚫ 19.4%</div>
+        <div class="odds-item">⚰️ 19.4%</div>
+    </div>
+    <div id="payouts">
+        <div class="payout-item">4 Any: 50<br>1★: 250<br>2★: 1250</div>
+        <div class="payout-item">5 👑: 1000<br>1★: 5000<br>2★: 25000</div>
+        <div class="payout-item">5 ⚔️/🛡️: 200<br>1★: 1000<br>2★: 5000</div>
+        <div class="payout-item">Treasury: 150<br>1★: 750<br>2★: 3750</div>
+        <div class="payout-item">Wheel: 50–500<br>1★: 250–2500<br>2★: 1250–12500</div>
     </div>
 
     <script>
-        const symbols = ['👑', '⚔️', '🛡️', '🪙', '🐉', '⚫'];
+        const symbols = ['👑', '⚔️', '🛡️', '🪙', '🐉', '⚰️'];
         const weights = [5, 5, 5, 5, 4, 6];
         const nonBlankSymbols = ['👑', '⚔️', '🛡️', '🪙', '🐉'];
         const nonBlankWeights = [5, 5, 5, 5, 4];
@@ -416,7 +426,7 @@
                 const indices = [col, col + 5, col + 10];
                 for (const i of indices) {
                     reels[i] = getRandomSymbol();
-                    jackpot[i] = Math.random() < 0.10 && reels[i] !== '⚫';
+                    jackpot[i] = Math.random() < 0.10 && reels[i] !== '⚰️';
                     const reelElement = document.getElementById(`reel-${i}`);
                     clearInterval(reelElement.dataset.interval);
                     reelElement.classList.remove('spinning');
@@ -440,7 +450,7 @@
                 let group = [];
                 for (let col = 0; col < 5; col++) {
                     let i = start + col;
-                    if (reels[i] === '⚫') {
+                    if (reels[i] === '⚰️') {
                         count++;
                         group.push(i);
                     } else {
@@ -503,7 +513,7 @@
                         group.push(line[i]);
                         if (maxSymbol === null && i > 0) maxSymbol = reels[line[i - 1]];
                         if (jackpot[line[i]]) jackpotCount++;
-                    } else if (curr !== '⚫' && (maxSymbol === null || curr === maxSymbol)) {
+                    } else if (curr !== '⚰️' && (maxSymbol === null || curr === maxSymbol)) {
                         count++;
                         group.push(line[i]);
                         if (maxSymbol === null) maxSymbol = curr;
@@ -515,7 +525,7 @@
                         jackpotCount = 0;
                         maxSymbol = null;
                         group = [];
-                        if (curr !== '⚫') {
+                        if (curr !== '⚰️') {
                             count = 1;
                             group = [line[i]];
                             maxSymbol = curr;
@@ -539,7 +549,7 @@
                         resultText += `4 ${maxSymbol} in a row! `;
                     }
                     if (jackpotCount > 0) {
-                        const multiplier = Math.pow(5, jackpotCount); // 5x per jackpot
+                        const multiplier = Math.pow(5, jackpotCount);
                         lineWinnings *= multiplier;
                         resultText += `Jackpot ${jackpotCount}x (${multiplier}x multiplier)! `;
                     }
@@ -583,7 +593,7 @@
                 }
 
                 if (coinCount >= 4) {
-                    let coinWinnings = 10 * 10; // Base win
+                    let coinWinnings = 10 * 10;
                     if (coinJackpotCount > 0) {
                         const multiplier = Math.pow(5, coinJackpotCount);
                         coinWinnings += 50 * multiplier;
@@ -657,7 +667,7 @@
                             group.push(line[i]);
                             if (maxSymbol === null && i > 0) maxSymbol = reels[line[i - 1]];
                             if (jackpot[line[i]]) jackpotCount++;
-                        } else if (curr !== '⚫' && (maxSymbol === null || curr === maxSymbol)) {
+                        } else if (curr !== '⚰️' && (maxSymbol === null || curr === maxSymbol)) {
                             count++;
                             group.push(line[i]);
                             if (maxSymbol === null) maxSymbol = curr;
@@ -669,7 +679,7 @@
                             jackpotCount = 0;
                             maxSymbol = null;
                             group = [];
-                            if (curr !== '⚫') {
+                            if (curr !== '⚰️') {
                                 count = 1;
                                 group = [line[i]];
                                 maxSymbol = curr;
