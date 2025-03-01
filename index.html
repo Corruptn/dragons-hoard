@@ -171,6 +171,63 @@
         .payline.fade-out {
             opacity: 0;
         }
+        #wheel-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+        }
+        #wheel {
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(
+                #d4a017 0deg 60deg, #1a0f07 60deg 120deg,
+                #d4a017 120deg 180deg, #1a0f07 180deg 240deg,
+                #d4a017 240deg 300deg, #1a0f07 300deg 360deg
+            );
+            border-radius: 50%;
+            border: 8px solid #8b5a2b;
+            box-shadow: 0 0 20px rgba(212, 160, 23, 0.8);
+            position: relative;
+            transition: transform 3s ease-out;
+        }
+        #wheel-pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 20px solid #ff0000;
+            z-index: 101;
+        }
+        .wheel-label {
+            position: absolute;
+            color: #fff;
+            font-size: 20px;
+            text-shadow: 0 0 5px #000;
+            transform-origin: center;
+        }
+        #wheel-result {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #d4a017;
+            text-shadow: 0 0 5px #ff0000;
+        }
         @media (max-width: 430px) {
             body {
                 padding: 5px;
@@ -275,6 +332,16 @@
             .payline {
                 height: 1vw;
             }
+            #wheel-container {
+                width: 50vw;
+                height: 50vw;
+            }
+            .wheel-label {
+                font-size: 3vw;
+            }
+            #wheel-result {
+                font-size: 4vw;
+            }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
@@ -300,7 +367,20 @@
         <div class="payout-item">5 👑: 1000<br>1★: 5000<br>2★: 25000</div>
         <div class="payout-item">5 ⚔️/🛡️: 200<br>1★: 1000<br>2★: 5000</div>
         <div class="payout-item">Treasury: 150<br>1★: 750<br>2★: 3750</div>
-        <div class="payout-item">Wheel: 50–500<br>1★: <span class="no-link">250–2500</span><br>2★: <span class="no-link">1250–12500</span></div>
+        <div class="payout-item">Wheel: Spin!<br>1★: Spin!<br>2★: Spin!</div>
+    </div>
+    <div id="wheel-modal">
+        <div id="wheel-container">
+            <div id="wheel"></div>
+            <div id="wheel-pointer"></div>
+            <div class="wheel-label" style="top: 20%; left: 50%; transform: translate(-50%, -50%) rotate(30deg);">50</div>
+            <div class="wheel-label" style="top: 35%; right: 20%; transform: translate(50%, -50%) rotate(90deg);">100</div>
+            <div class="wheel-label" style="bottom: 20%; right: 25%; transform: translate(50%, 50%) rotate(150deg);">200</div>
+            <div class="wheel-label" style="bottom: 20%; left: 50%; transform: translate(-50%, 50%) rotate(210deg);">300</div>
+            <div class="wheel-label" style="bottom: 35%; left: 20%; transform: translate(-50%, 50%) rotate(270deg);">400</div>
+            <div class="wheel-label" style="top: 35%; left: 25%; transform: translate(-50%, -50%) rotate(330deg);">500</div>
+        </div>
+        <div id="wheel-result"></div>
     </div>
 
     <script>
@@ -315,6 +395,9 @@
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const spinButton = document.getElementById('spinButton');
+        const wheelModal = document.getElementById('wheel-modal');
+        const wheel = document.getElementById('wheel');
+        const wheelResult = document.getElementById('wheel-result');
 
         function playSpinSound() {
             const osc1 = audioCtx.createOscillator();
@@ -544,6 +627,34 @@
             }
         }
 
+        async function spinDragonWheel(jackpotCount) {
+            wheelModal.style.display = 'flex';
+            wheelResult.textContent = '';
+            const prizes = [50, 100, 200, 300, 400, 500];
+            const spins = 5 + Math.floor(Math.random() * 5); // 5-9 full spins
+            const randomAngle = Math.floor(Math.random() * 60); // 0-59 degrees within a segment
+            const totalRotation = spins * 360 + randomAngle;
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
+
+            await new Promise(resolve => setTimeout(resolve, 3000)); // 3s spin
+
+            const finalAngle = totalRotation % 360;
+            const segment = Math.floor(finalAngle / 60); // 60deg per segment
+            let prize = prizes[segment];
+            if (jackpotCount > 0) {
+                const jackpotMultiplier = Math.pow(5, jackpotCount);
+                prize *= jackpotMultiplier;
+                wheelResult.textContent = `Dragon’s Wheel: ${prizes[segment]} x ${jackpotMultiplier} = ${prize} coins!`;
+            } else {
+                wheelResult.textContent = `Dragon’s Wheel: ${prize} coins!`;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Show result for 2s
+            wheelModal.style.display = 'none';
+            wheel.style.transform = 'rotate(0deg)'; // Reset for next spin
+            return prize;
+        }
+
         async function spin() {
             if (isSpinning) return;
             isSpinning = true;
@@ -737,7 +848,7 @@
                 let effectiveCount = count + wilds;
                 if (effectiveCount >= 4 && maxSymbol !== null) {
                     group.forEach(i => document.getElementById(`reel-${i}`).classList.add('win'));
-                    drawPayline(line, group); // Pass group instead of effectiveCount
+                    drawPayline(line, group);
                     playWinSound();
                     let lineWinnings = 0;
                     if (effectiveCount >= 5) {
@@ -811,17 +922,10 @@
                 }
                 if (dragonCount >= 4) {
                     drawPayline(line, dragonGroup);
-                    const multiplier = Math.floor(Math.random() * 46) + 5;
-                    let dragonWinnings = 10 * multiplier;
-                    if (dragonJackpotCount > 0) {
-                        const jackpotMultiplier = Math.pow(5, dragonJackpotCount);
-                        dragonWinnings *= jackpotMultiplier;
-                        resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x (${dragonJackpotCount}x Jackpot, ${jackpotMultiplier}x) = ${dragonWinnings} coins! `;
-                    } else {
-                        resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x = ${dragonWinnings} coins! `;
-                    }
-                    winnings += dragonWinnings;
                     playDragonBonusSound();
+                    const dragonWinnings = await spinDragonWheel(dragonJackpotCount);
+                    resultText += `5 Dragons in a row! ${wheelResult.textContent} `;
+                    winnings += dragonWinnings;
                     bonusGroups.push(dragonGroup);
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 }
@@ -970,17 +1074,10 @@
                     }
                     if (dragonCount >= 4) {
                         drawPayline(line, dragonGroup);
-                        const multiplier = Math.floor(Math.random() * 46) + 5;
-                        let dragonWinnings = 10 * multiplier;
-                        if (dragonJackpotCount > 0) {
-                            const jackpotMultiplier = Math.pow(5, dragonJackpotCount);
-                            dragonWinnings *= jackpotMultiplier;
-                            resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x (${dragonJackpotCount}x Jackpot, ${jackpotMultiplier}x) = ${dragonWinnings} coins! `;
-                        } else {
-                            resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x = ${dragonWinnings} coins! `;
-                        }
-                        winnings += dragonWinnings;
                         playDragonBonusSound();
+                        const dragonWinnings = await spinDragonWheel(dragonJackpotCount);
+                        resultText += `5 Dragons in a row! ${wheelResult.textContent} `;
+                        winnings += dragonWinnings;
                         bonusGroups.push(dragonGroup);
                         await new Promise(resolve => setTimeout(resolve, 1500));
                     }
