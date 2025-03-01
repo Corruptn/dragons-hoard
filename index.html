@@ -153,9 +153,9 @@
                 overflow-x: hidden;
             }
             h1 {
-                font-size: 5.5vw; /* Slightly smaller for full fit */
+                font-size: 5.5vw;
                 white-space: nowrap;
-                padding: 5px 10px; /* Added padding for breathing room */
+                padding: 5px 10px;
             }
             #slot-machine {
                 grid-template-rows: repeat(3, 16vw);
@@ -234,9 +234,9 @@
                 border-radius: 0.8vw;
                 width: 14vw;
                 font-size: 1.8vw;
-                -webkit-user-select: none; /* Prevent phone number detection */
-                -webkit-touch-callout: none; /* Disable call link */
-                color: #d4a017 !important; /* Force gold color */
+                -webkit-user-select: none;
+                -webkit-touch-callout: none;
+                color: #d4a017 !important;
             }
         }
     </style>
@@ -787,7 +787,7 @@
                     for (let group of newWinningGroups) {
                         for (let i of group) {
                             if (!replacedIndices.has(i)) {
-                                constableElement = document.getElementById(`reel-${i}`);
+                                const reelElement = document.getElementById(`reel-${i}`);
                                 reelElement.classList.add('win-replace');
                                 await new Promise(resolve => setTimeout(resolve, 600));
                                 reels[i] = getRandomNonBlankSymbol();
