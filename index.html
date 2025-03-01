@@ -148,11 +148,11 @@
                 overflow-x: hidden;
             }
             #slot-machine {
-                grid-template-rows: repeat(3, 16vw); /* Smaller reels for tighter fit */
+                grid-template-rows: repeat(3, 16vw);
                 grid-template-columns: repeat(5, 16vw);
                 gap: 1vw;
                 margin: 5px auto;
-                width: 85vw; /* Reduced from 90vw for more margin */
+                width: 85vw;
                 padding: 2vw;
                 border: 1.2vw solid #d4a017;
                 border-radius: 2vw;
@@ -165,7 +165,7 @@
                 text-shadow: 0 0 1.5vw #ff0000;
             }
             .reel {
-                font-size: 9vw; /* Slightly smaller for readability */
+                font-size: 9vw;
                 border: 0.5vw solid #8b5a2b;
                 border-radius: 1vw;
                 box-shadow: inset 0 0 0.8vw rgba(0, 0, 0, 0.5);
@@ -199,7 +199,7 @@
                 margin: 5px;
             }
             #result, #balance {
-                font-size: 3.5vw; /* Slightly smaller for fit */
+                font-size: 3.5vw;
                 margin: 5px;
             }
             button {
@@ -378,7 +378,7 @@
                 rand -= nonBlankWeights[i];
                 if (rand <= 0) return nonBlankSymbols[i];
             }
-            return nonBlankSymbols[nonBlankSymbols.length - 1];
+            return nonBlankSymbols[nonBlankWeights.length - 1];
         }
 
         async function spin() {
@@ -393,6 +393,7 @@
 
             playSpinSound();
 
+            // Start spinning all reels
             for (let i = 0; i < 15; i++) {
                 const reelElement = document.getElementById(`reel-${i}`);
                 reelElement.classList.add('spinning');
@@ -400,26 +401,31 @@
                 const cycleInterval = setInterval(() => {
                     reelElement.innerText = getRandomSymbol();
                     cycleCount++;
-                    if (cycleCount > 20) clearInterval(cycleInterval);
+                    if (cycleCount > 50) clearInterval(cycleInterval); // Longer spin for stagger
                 }, 50);
+                reelElement.dataset.interval = cycleInterval; // Store interval ID
             }
 
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            for (let i = 0; i < 15; i++) {
-                reels[i] = getRandomSymbol();
-                jackpot[i] = Math.random() < 0.10 && reels[i] !== '⚫';
-                const reelElement = document.getElementById(`reel-${i}`);
-                reelElement.classList.remove('spinning');
-                if (reels[i] === '🛡️') {
-                    reelElement.innerHTML = '<span>' + reels[i] + '</span>';
-                    reelElement.classList.add('shield');
-                } else {
-                    reelElement.innerText = reels[i];
-                    reelElement.classList.remove('shield');
+            // Stop reels column by column (left to right)
+            for (let col = 0; col < 5; col++) {
+                const indices = [col, col + 5, col + 10]; // Column positions: Top (0-4), Middle (5-9), Bottom (10-14)
+                for (const i of indices) {
+                    reels[i] = getRandomSymbol();
+                    jackpot[i] = Math.random() < 0.10 && reels[i] !== '⚫';
+                    const reelElement = document.getElementById(`reel-${i}`);
+                    clearInterval(reelElement.dataset.interval); // Stop cycling
+                    reelElement.classList.remove('spinning');
+                    if (reels[i] === '🛡️') {
+                        reelElement.innerHTML = '<span>' + reels[i] + '</span>';
+                        reelElement.classList.add('shield');
+                    } else {
+                        reelElement.innerText = reels[i];
+                        reelElement.classList.remove('shield');
+                    }
+                    if (jackpot[i]) reelElement.classList.add('jackpot');
+                    else reelElement.classList.remove('jackpot');
                 }
-                if (jackpot[i]) reelElement.classList.add('jackpot');
-                else reelElement.classList.remove('jackpot');
+                await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay between columns
             }
 
             const blankGroups = [];
