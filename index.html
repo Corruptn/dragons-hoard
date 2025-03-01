@@ -143,12 +143,12 @@
             font-size: 12px;
         }
         .no-link {
-            color: #d4a017 !important; /* Force gold */
-            -webkit-user-select: none; /* Prevent selection */
-            -webkit-touch-callout: none; /* Disable call link */
-            text-decoration: none !important; /* No underline */
-            -webkit-text-decoration: none !important; /* Safari-specific */
-            pointer-events: none; /* Disable clicks */
+            color: #d4a017 !important;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            text-decoration: none !important;
+            -webkit-text-decoration: none !important;
+            pointer-events: none;
         }
         @media (max-width: 430px) {
             body {
@@ -422,6 +422,52 @@
 
             playSpinSound();
 
+            // Secret 1-in-100 chance for full board bonus
+            const isFullBoardBonus = Math.random() < 0.01; // 1% chance
+            if (isFullBoardBonus) {
+                const bonusSymbol = nonBlankSymbols[Math.floor(Math.random() * nonBlankSymbols.length)];
+                for (let i = 0; i < 15; i++) {
+                    const reelElement = document.getElementById(`reel-${i}`);
+                    reelElement.classList.add('spinning');
+                    let cycleCount = 0;
+                    const cycleInterval = setInterval(() => {
+                        reelElement.innerText = getRandomSymbol();
+                        cycleCount++;
+                        if (cycleCount > 50) clearInterval(cycleInterval);
+                    }, 50);
+                    reelElement.dataset.interval = cycleInterval;
+                }
+
+                // Stop reels column by column, all set to bonusSymbol
+                for (let col = 0; col < 5; col++) {
+                    const indices = [col, col + 5, col + 10];
+                    for (const i of indices) {
+                        reels[i] = bonusSymbol;
+                        jackpot[i] = false; // No jackpots for this spin
+                        const reelElement = document.getElementById(`reel-${i}`);
+                        clearInterval(reelElement.dataset.interval);
+                        reelElement.classList.remove('spinning');
+                        if (reels[i] === '🛡️') {
+                            reelElement.innerHTML = '<span>' + reels[i] + '</span>';
+                            reelElement.classList.add('shield');
+                        } else {
+                            reelElement.innerText = reels[i];
+                            reelElement.classList.remove('shield');
+                        }
+                        reelElement.classList.remove('jackpot'); // Ensure no jackpot stars
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
+                winnings += 10000;
+                resultText = `Dragon’s Blessing! All ${bonusSymbol} board! +10000 coins! `;
+                balance += winnings;
+                document.getElementById('balance').innerText = `Balance: ${balance} Coins`;
+                document.getElementById('result').innerText = `Won ${winnings} coins! ${resultText}`;
+                return; // Exit spin function early
+            }
+
+            // Normal spin logic if bonus not triggered
             for (let i = 0; i < 15; i++) {
                 const reelElement = document.getElementById(`reel-${i}`);
                 reelElement.classList.add('spinning');
