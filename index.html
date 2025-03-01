@@ -13,6 +13,10 @@
             margin: 0;
             padding: 20px;
         }
+        h1 {
+            font-size: 36px; /* Default desktop size */
+            margin: 10px 0;
+        }
         #slot-machine {
             display: grid;
             grid-template-rows: repeat(3, 100px);
@@ -145,6 +149,10 @@
                 justify-content: center;
                 -webkit-user-select: none;
                 overflow-x: hidden;
+            }
+            h1 {
+                font-size: 6vw; /* Smaller to fit "Dragon's Hoard Slot Machine" on one line */
+                white-space: nowrap; /* Forces single line */
             }
             #slot-machine {
                 grid-template-rows: repeat(3, 16vw);
@@ -392,7 +400,6 @@
 
             playSpinSound();
 
-            // Start spinning all reels
             for (let i = 0; i < 15; i++) {
                 const reelElement = document.getElementById(`reel-${i}`);
                 reelElement.classList.add('spinning');
@@ -405,7 +412,6 @@
                 reelElement.dataset.interval = cycleInterval;
             }
 
-            // Stop reels column by column (left to right)
             for (let col = 0; col < 5; col++) {
                 const indices = [col, col + 5, col + 10];
                 for (const i of indices) {
@@ -483,11 +489,10 @@
             let bonusGroups = [];
             let initialReplacementDone = false;
 
-            // First pass: Check initial wins and bonuses
             for (let line of paylines) {
                 let count = 0;
                 let wilds = 0;
-                let hasJackpot = false;
+                let jackpotCount = 0;
                 let maxSymbol = null;
                 let group = [];
 
@@ -497,24 +502,24 @@
                         wilds++;
                         group.push(line[i]);
                         if (maxSymbol === null && i > 0) maxSymbol = reels[line[i - 1]];
-                        if (jackpot[line[i]]) hasJackpot = true;
+                        if (jackpot[line[i]]) jackpotCount++;
                     } else if (curr !== '⚫' && (maxSymbol === null || curr === maxSymbol)) {
                         count++;
                         group.push(line[i]);
                         if (maxSymbol === null) maxSymbol = curr;
-                        if (jackpot[line[i]]) hasJackpot = true;
+                        if (jackpot[line[i]]) jackpotCount++;
                     } else {
                         if (count + wilds >= 4) break;
                         count = 0;
                         wilds = 0;
+                        jackpotCount = 0;
                         maxSymbol = null;
-                        hasJackpot = false;
                         group = [];
                         if (curr !== '⚫') {
                             count = 1;
                             group = [line[i]];
                             maxSymbol = curr;
-                            if (jackpot[line[i]]) hasJackpot = true;
+                            if (jackpot[line[i]]) jackpotCount++;
                         }
                     }
                 }
@@ -533,9 +538,10 @@
                         lineWinnings = 5 * 10;
                         resultText += `4 ${maxSymbol} in a row! `;
                     }
-                    if (hasJackpot) {
-                        lineWinnings *= 5;
-                        resultText += 'Jackpot 5x! ';
+                    if (jackpotCount > 0) {
+                        const multiplier = Math.pow(5, jackpotCount); // 5x per jackpot
+                        lineWinnings *= multiplier;
+                        resultText += `Jackpot ${jackpotCount}x (${multiplier}x multiplier)! `;
                     }
                     winnings += lineWinnings;
                     winningGroups.push(group);
@@ -547,8 +553,8 @@
             for (let line of paylines) {
                 let coinCount = 0;
                 let dragonCount = 0;
-                let coinJackpot = false;
-                let dragonJackpot = false;
+                let coinJackpotCount = 0;
+                let dragonJackpotCount = 0;
                 let coinGroup = [];
                 let dragonGroup = [];
 
@@ -557,44 +563,55 @@
                     if (curr === '🪙' || curr === '🐉') {
                         coinCount++;
                         coinGroup.push(line[i]);
-                        if (curr === '🪙' && jackpot[line[i]]) coinJackpot = true;
-                        else if (curr === '🐉' && jackpot[line[i]]) coinJackpot = true;
+                        if (jackpot[line[i]]) coinJackpotCount++;
                     } else {
                         if (coinCount >= 4) break;
                         coinCount = 0;
-                        coinJackpot = false;
+                        coinJackpotCount = 0;
                         coinGroup = [];
                     }
                     if (curr === '🐉') {
                         dragonCount++;
                         dragonGroup.push(line[i]);
-                        if (jackpot[line[i]]) dragonJackpot = true;
+                        if (jackpot[line[i]]) dragonJackpotCount++;
                     } else {
                         if (dragonCount >= 4) break;
                         dragonCount = 0;
-                        dragonJackpot = false;
+                        dragonJackpotCount = 0;
                         dragonGroup = [];
                     }
                 }
 
                 if (coinCount >= 4) {
-                    winnings += 10 * 10;
-                    if (coinJackpot) winnings += 50 * 5;
-                    else winnings += 50;
-                    resultText += '5 Coins in a row! Treasury Spin: ' + (coinJackpot ? '+250 coins! ' : '+50 coins! ');
+                    let coinWinnings = 10 * 10; // Base win
+                    if (coinJackpotCount > 0) {
+                        const multiplier = Math.pow(5, coinJackpotCount);
+                        coinWinnings += 50 * multiplier;
+                        resultText += `5 Coins in a row! Treasury Spin: +${coinWinnings} coins (${coinJackpotCount}x Jackpot, ${multiplier}x)! `;
+                    } else {
+                        coinWinnings += 50;
+                        resultText += `5 Coins in a row! Treasury Spin: +${coinWinnings} coins! `;
+                    }
+                    winnings += coinWinnings;
                     playCoinBonusSound();
                     bonusGroups.push(coinGroup);
                 }
                 if (dragonCount >= 4) {
                     const multiplier = Math.floor(Math.random() * 46) + 5;
-                    winnings += 10 * multiplier * (dragonJackpot ? 5 : 1);
-                    resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x${dragonJackpot ? ' (Jackpot 5x!)' : ''}! `;
+                    let dragonWinnings = 10 * multiplier;
+                    if (dragonJackpotCount > 0) {
+                        const jackpotMultiplier = Math.pow(5, dragonJackpotCount);
+                        dragonWinnings *= jackpotMultiplier;
+                        resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x (${dragonJackpotCount}x Jackpot, ${jackpotMultiplier}x) = ${dragonWinnings} coins! `;
+                    } else {
+                        resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x = ${dragonWinnings} coins! `;
+                    }
+                    winnings += dragonWinnings;
                     playDragonBonusSound();
                     bonusGroups.push(dragonGroup);
                 }
             }
 
-            // Replace initial wins and bonuses once
             const allWinningGroups = [...winningGroups, ...bonusGroups];
             if (allWinningGroups.length > 0 && !initialReplacementDone) {
                 resultText += 'Winning emojis replaced! ';
@@ -623,14 +640,13 @@
                 }
                 initialReplacementDone = true;
 
-                // Second pass: Check for new wins after replacement
                 winningGroups = [];
                 bonusGroups = [];
 
                 for (let line of paylines) {
                     let count = 0;
                     let wilds = 0;
-                    let hasJackpot = false;
+                    let jackpotCount = 0;
                     let maxSymbol = null;
                     let group = [];
 
@@ -640,24 +656,24 @@
                             wilds++;
                             group.push(line[i]);
                             if (maxSymbol === null && i > 0) maxSymbol = reels[line[i - 1]];
-                            if (jackpot[line[i]]) hasJackpot = true;
+                            if (jackpot[line[i]]) jackpotCount++;
                         } else if (curr !== '⚫' && (maxSymbol === null || curr === maxSymbol)) {
                             count++;
                             group.push(line[i]);
                             if (maxSymbol === null) maxSymbol = curr;
-                            if (jackpot[line[i]]) hasJackpot = true;
+                            if (jackpot[line[i]]) jackpotCount++;
                         } else {
                             if (count + wilds >= 4) break;
                             count = 0;
                             wilds = 0;
+                            jackpotCount = 0;
                             maxSymbol = null;
-                            hasJackpot = false;
                             group = [];
                             if (curr !== '⚫') {
                                 count = 1;
                                 group = [line[i]];
                                 maxSymbol = curr;
-                                if (jackpot[line[i]]) hasJackpot = true;
+                                if (jackpot[line[i]]) jackpotCount++;
                             }
                         }
                     }
@@ -676,9 +692,10 @@
                             lineWinnings = 5 * 10;
                             resultText += `4 ${maxSymbol} in a row! `;
                         }
-                        if (hasJackpot) {
-                            lineWinnings *= 5;
-                            resultText += 'Jackpot 5x! ';
+                        if (jackpotCount > 0) {
+                            const multiplier = Math.pow(5, jackpotCount);
+                            lineWinnings *= multiplier;
+                            resultText += `Jackpot ${jackpotCount}x (${multiplier}x multiplier)! `;
                         }
                         winnings += lineWinnings;
                         winningGroups.push(group);
@@ -690,8 +707,8 @@
                 for (let line of paylines) {
                     let coinCount = 0;
                     let dragonCount = 0;
-                    let coinJackpot = false;
-                    let dragonJackpot = false;
+                    let coinJackpotCount = 0;
+                    let dragonJackpotCount = 0;
                     let coinGroup = [];
                     let dragonGroup = [];
 
@@ -700,44 +717,55 @@
                         if (curr === '🪙' || curr === '🐉') {
                             coinCount++;
                             coinGroup.push(line[i]);
-                            if (curr === '🪙' && jackpot[line[i]]) coinJackpot = true;
-                            else if (curr === '🐉' && jackpot[line[i]]) coinJackpot = true;
+                            if (jackpot[line[i]]) coinJackpotCount++;
                         } else {
                             if (coinCount >= 4) break;
                             coinCount = 0;
-                            coinJackpot = false;
+                            coinJackpotCount = 0;
                             coinGroup = [];
                         }
                         if (curr === '🐉') {
                             dragonCount++;
                             dragonGroup.push(line[i]);
-                            if (jackpot[line[i]]) dragonJackpot = true;
+                            if (jackpot[line[i]]) dragonJackpotCount++;
                         } else {
                             if (dragonCount >= 4) break;
                             dragonCount = 0;
-                            dragonJackpot = false;
+                            dragonJackpotCount = 0;
                             dragonGroup = [];
                         }
                     }
 
                     if (coinCount >= 4) {
-                        winnings += 10 * 10;
-                        if (coinJackpot) winnings += 50 * 5;
-                        else winnings += 50;
-                        resultText += '5 Coins in a row! Treasury Spin: ' + (coinJackpot ? '+250 coins! ' : '+50 coins! ');
+                        let coinWinnings = 10 * 10;
+                        if (coinJackpotCount > 0) {
+                            const multiplier = Math.pow(5, coinJackpotCount);
+                            coinWinnings += 50 * multiplier;
+                            resultText += `5 Coins in a row! Treasury Spin: +${coinWinnings} coins (${coinJackpotCount}x Jackpot, ${multiplier}x)! `;
+                        } else {
+                            coinWinnings += 50;
+                            resultText += `5 Coins in a row! Treasury Spin: +${coinWinnings} coins! `;
+                        }
+                        winnings += coinWinnings;
                         playCoinBonusSound();
                         bonusGroups.push(coinGroup);
                     }
                     if (dragonCount >= 4) {
                         const multiplier = Math.floor(Math.random() * 46) + 5;
-                        winnings += 10 * multiplier * (dragonJackpot ? 5 : 1);
-                        resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x${dragonJackpot ? ' (Jackpot 5x!)' : ''}! `;
+                        let dragonWinnings = 10 * multiplier;
+                        if (dragonJackpotCount > 0) {
+                            const jackpotMultiplier = Math.pow(5, dragonJackpotCount);
+                            dragonWinnings *= jackpotMultiplier;
+                            resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x (${dragonJackpotCount}x Jackpot, ${jackpotMultiplier}x) = ${dragonWinnings} coins! `;
+                        } else {
+                            resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x = ${dragonWinnings} coins! `;
+                        }
+                        winnings += dragonWinnings;
                         playDragonBonusSound();
                         bonusGroups.push(dragonGroup);
                     }
                 }
 
-                // Only replace new wins once more, then stop
                 const newWinningGroups = [...winningGroups, ...bonusGroups];
                 if (newWinningGroups.length > 0) {
                     resultText += 'New winning emojis replaced! ';
