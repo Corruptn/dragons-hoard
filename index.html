@@ -136,7 +136,6 @@
             color: #d4a017;
             box-shadow: inset 0 0 5px rgba(212, 160, 23, 0.5);
         }
-        /* iPhone 13 adjustments */
         @media (max-width: 430px) {
             body {
                 padding: 5px;
@@ -401,19 +400,19 @@
                 const cycleInterval = setInterval(() => {
                     reelElement.innerText = getRandomSymbol();
                     cycleCount++;
-                    if (cycleCount > 50) clearInterval(cycleInterval); // Longer spin for stagger
+                    if (cycleCount > 50) clearInterval(cycleInterval);
                 }, 50);
-                reelElement.dataset.interval = cycleInterval; // Store interval ID
+                reelElement.dataset.interval = cycleInterval;
             }
 
             // Stop reels column by column (left to right)
             for (let col = 0; col < 5; col++) {
-                const indices = [col, col + 5, col + 10]; // Column positions: Top (0-4), Middle (5-9), Bottom (10-14)
+                const indices = [col, col + 5, col + 10];
                 for (const i of indices) {
                     reels[i] = getRandomSymbol();
                     jackpot[i] = Math.random() < 0.10 && reels[i] !== '⚫';
                     const reelElement = document.getElementById(`reel-${i}`);
-                    clearInterval(reelElement.dataset.interval); // Stop cycling
+                    clearInterval(reelElement.dataset.interval);
                     reelElement.classList.remove('spinning');
                     if (reels[i] === '🛡️') {
                         reelElement.innerHTML = '<span>' + reels[i] + '</span>';
@@ -425,7 +424,7 @@
                     if (jackpot[i]) reelElement.classList.add('jackpot');
                     else reelElement.classList.remove('jackpot');
                 }
-                await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay between columns
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
 
             const blankGroups = [];
@@ -482,9 +481,149 @@
 
             let winningGroups = [];
             let bonusGroups = [];
-            let hasReplaced = false;
+            let initialReplacementDone = false;
 
-            do {
+            // First pass: Check initial wins and bonuses
+            for (let line of paylines) {
+                let count = 0;
+                let wilds = 0;
+                let hasJackpot = false;
+                let maxSymbol = null;
+                let group = [];
+
+                for (let i = 0; i < line.length; i++) {
+                    let curr = reels[line[i]];
+                    if (curr === '🐉') {
+                        wilds++;
+                        group.push(line[i]);
+                        if (maxSymbol === null && i > 0) maxSymbol = reels[line[i - 1]];
+                        if (jackpot[line[i]]) hasJackpot = true;
+                    } else if (curr !== '⚫' && (maxSymbol === null || curr === maxSymbol)) {
+                        count++;
+                        group.push(line[i]);
+                        if (maxSymbol === null) maxSymbol = curr;
+                        if (jackpot[line[i]]) hasJackpot = true;
+                    } else {
+                        if (count + wilds >= 4) break;
+                        count = 0;
+                        wilds = 0;
+                        maxSymbol = null;
+                        hasJackpot = false;
+                        group = [];
+                        if (curr !== '⚫') {
+                            count = 1;
+                            group = [line[i]];
+                            maxSymbol = curr;
+                            if (jackpot[line[i]]) hasJackpot = true;
+                        }
+                    }
+                }
+
+                let effectiveCount = count + wilds;
+                if (effectiveCount >= 4 && maxSymbol !== null) {
+                    group.forEach(i => document.getElementById(`reel-${i}`).classList.add('win'));
+                    playWinSound();
+                    let lineWinnings = 0;
+                    if (effectiveCount >= 5) {
+                        if (maxSymbol === '👑') lineWinnings = 100 * 10;
+                        else if (maxSymbol === '⚔️' || maxSymbol === '🛡️') lineWinnings = 20 * 10;
+                        else if (maxSymbol === '🪙') lineWinnings = 10 * 10;
+                        resultText += `5 ${maxSymbol} in a row! `;
+                    } else {
+                        lineWinnings = 5 * 10;
+                        resultText += `4 ${maxSymbol} in a row! `;
+                    }
+                    if (hasJackpot) {
+                        lineWinnings *= 5;
+                        resultText += 'Jackpot 5x! ';
+                    }
+                    winnings += lineWinnings;
+                    winningGroups.push(group);
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    group.forEach(i => document.getElementById(`reel-${i}`).classList.remove('win'));
+                }
+            }
+
+            for (let line of paylines) {
+                let coinCount = 0;
+                let dragonCount = 0;
+                let coinJackpot = false;
+                let dragonJackpot = false;
+                let coinGroup = [];
+                let dragonGroup = [];
+
+                for (let i = 0; i < line.length; i++) {
+                    let curr = reels[line[i]];
+                    if (curr === '🪙' || curr === '🐉') {
+                        coinCount++;
+                        coinGroup.push(line[i]);
+                        if (curr === '🪙' && jackpot[line[i]]) coinJackpot = true;
+                        else if (curr === '🐉' && jackpot[line[i]]) coinJackpot = true;
+                    } else {
+                        if (coinCount >= 4) break;
+                        coinCount = 0;
+                        coinJackpot = false;
+                        coinGroup = [];
+                    }
+                    if (curr === '🐉') {
+                        dragonCount++;
+                        dragonGroup.push(line[i]);
+                        if (jackpot[line[i]]) dragonJackpot = true;
+                    } else {
+                        if (dragonCount >= 4) break;
+                        dragonCount = 0;
+                        dragonJackpot = false;
+                        dragonGroup = [];
+                    }
+                }
+
+                if (coinCount >= 4) {
+                    winnings += 10 * 10;
+                    if (coinJackpot) winnings += 50 * 5;
+                    else winnings += 50;
+                    resultText += '5 Coins in a row! Treasury Spin: ' + (coinJackpot ? '+250 coins! ' : '+50 coins! ');
+                    playCoinBonusSound();
+                    bonusGroups.push(coinGroup);
+                }
+                if (dragonCount >= 4) {
+                    const multiplier = Math.floor(Math.random() * 46) + 5;
+                    winnings += 10 * multiplier * (dragonJackpot ? 5 : 1);
+                    resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x${dragonJackpot ? ' (Jackpot 5x!)' : ''}! `;
+                    playDragonBonusSound();
+                    bonusGroups.push(dragonGroup);
+                }
+            }
+
+            // Replace initial wins and bonuses once
+            const allWinningGroups = [...winningGroups, ...bonusGroups];
+            if (allWinningGroups.length > 0 && !initialReplacementDone) {
+                resultText += 'Winning emojis replaced! ';
+                playBlankReplaceSound();
+                for (let group of allWinningGroups) {
+                    for (let i of group) {
+                        if (!replacedIndices.has(i)) {
+                            const reelElement = document.getElementById(`reel-${i}`);
+                            reelElement.classList.add('win-replace');
+                            await new Promise(resolve => setTimeout(resolve, 600));
+                            reels[i] = getRandomNonBlankSymbol();
+                            jackpot[i] = Math.random() < 0.10;
+                            if (reels[i] === '🛡️') {
+                                reelElement.innerHTML = '<span>' + reels[i] + '</span>';
+                                reelElement.classList.add('shield');
+                            } else {
+                                reelElement.innerText = reels[i];
+                                reelElement.classList.remove('shield');
+                            }
+                            if (jackpot[i]) reelElement.classList.add('jackpot');
+                            else reelElement.classList.remove('jackpot');
+                            reelElement.classList.remove('win-replace');
+                            replacedIndices.add(i);
+                        }
+                    }
+                }
+                initialReplacementDone = true;
+
+                // Second pass: Check for new wins after replacement
                 winningGroups = [];
                 bonusGroups = [];
 
@@ -598,11 +737,12 @@
                     }
                 }
 
-                const allWinningGroups = [...winningGroups, ...bonusGroups];
-                if (allWinningGroups.length > 0 && !hasReplaced) {
-                    resultText += 'Winning emojis replaced! ';
+                // Only replace new wins once more, then stop
+                const newWinningGroups = [...winningGroups, ...bonusGroups];
+                if (newWinningGroups.length > 0) {
+                    resultText += 'New winning emojis replaced! ';
                     playBlankReplaceSound();
-                    for (let group of allWinningGroups) {
+                    for (let group of newWinningGroups) {
                         for (let i of group) {
                             if (!replacedIndices.has(i)) {
                                 const reelElement = document.getElementById(`reel-${i}`);
@@ -624,13 +764,8 @@
                             }
                         }
                     }
-                    hasReplaced = true;
-                } else if (allWinningGroups.length > 0) {
-                    hasReplaced = false;
-                } else {
-                    break;
                 }
-            } while (winningGroups.length > 0 || bonusGroups.length > 0);
+            }
 
             balance += winnings;
             document.getElementById('balance').innerText = `Balance: ${balance} Coins`;
