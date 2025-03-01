@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dragon's Hoard Slot Machine BAD MAN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #2b2b2b;
+            color: #fff;
+        }
+        #slot-machine {
+            display: grid;
+            grid-template-rows: repeat(3, 100px);
+            grid-template-columns: repeat(5, 100px);
+            gap: 5px;
+            margin: 20px auto;
+            width: 520px;
+            background-color: #4a2c1b;
+            padding: 10px;
+            border: 5px solid #d4a017;
+            border-radius: 10px;
+        }
+        .reel {
+            font-size: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            color: #000;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .spinning {
+            animation: spin 0.5s infinite linear;
+        }
+        @keyframes spin {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100%); }
+        }
+        .blank-replace {
+            animation: fade 0.5s ease-in-out;
+        }
+        @keyframes fade {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .win {
+            animation: flash 0.5s 3;
+        }
+        @keyframes flash {
+            0% { background-color: #fff; }
+            50% { background-color: #ffd700; }
+            100% { background-color: #fff; }
+        }
+        #controls {
+            margin: 20px;
+        }
+        #result, #balance {
+            font-size: 20px;
+            margin: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #d4a017;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e6b923;
+        }
+        #odds {
+            margin: 20px auto;
+            width: 520px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+        }
+        .odds-item {
+            background-color: #4a2c1b;
+            padding: 10px;
+            border-radius: 5px;
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dragon's Hoard Slot Machine</h1>
+    <div id="slot-machine"></div>
+    <div id="controls">
+        <button onclick="spin()">Spin (10 Coins)</button>
+    </div>
+    <div id="balance">Balance: 1000 Coins</div>
+    <div id="result"></div>
+    <div id="odds">
+        <div class="odds-item">👑 13.3%</div>
+        <div class="odds-item">⚔️ 13.3%</div>
+        <div class="odds-item">🛡️ 13.3%</div>
+        <div class="odds-item">🪙 13.3%</div>
+        <div class="odds-item">🐉 6.7%</div>
+        <div class="odds-item">⚫ 40%</div>
+    </div>
+
+    <script>
+        const symbols = ['👑', '⚔️', '🛡️', '🪙', '🐉', '⚫'];
+        const weights = [2, 2, 2, 2, 1, 6]; // Crown, Sword, Shield, Coin, Dragon, Blank
+        const reels = Array(15).fill('');
+        let balance = 1000;
+
+        // Audio Context for sound effects
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(frequency, duration, type = 'sine') {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = type;
+            oscillator.frequency.value = frequency;
+            gainNode.gain.value = 0.1;
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        // Initialize the slot machine grid
+        const slotMachine = document.getElementById('slot-machine');
+        for (let i = 0; i < 15; i++) {
+            const reel = document.createElement('div');
+            reel.className = 'reel';
+            reel.id = `reel-${i}`;
+            slotMachine.appendChild(reel);
+        }
+
+        function getRandomSymbol() {
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+            let rand = Math.random() * totalWeight;
+            for (let i = 0; i < weights.length; i++) {
+                rand -= weights[i];
+                if (rand <= 0) return symbols[i];
+            }
+            return symbols[symbols.length - 1];
+        }
+
+        async function spin() {
+            if (balance < 10) {
+                document.getElementById('result').innerText = 'Not enough coins!';
+                return;
+            }
+            balance -= 10;
+            let winnings = 0;
+            let resultText = '';
+
+            // Spin sound (whirring)
+            playSound(200, 1, 'sawtooth'); // Replace with: new Audio('spin.mp3').play();
+
+            // Start spinning animation
+            for (let i = 0; i < 15; i++) {
+                document.getElementById(`reel-${i}`).classList.add('spinning');
+            }
+
+            // Simulate spin delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Stop spinning and set initial symbols
+            for (let i = 0; i < 15; i++) {
+                reels[i] = getRandomSymbol();
+                const reelElement = document.getElementById(`reel-${i}`);
+                reelElement.classList.remove('spinning');
+                reelElement.innerText = reels[i];
+            }
+
+            const paylines = [
+                [5, 6, 7, 8, 9],  // Middle
+                [0, 1, 2, 3, 4],  // Top
+                [10, 11, 12, 13, 14], // Bottom
+                [0, 6, 12, 8, 4], // Diagonal top-left to bottom-right
+                [10, 6, 2, 8, 14] // Diagonal bottom-left to top-right
+            ];
+
+            // Check for 4-5 Blanks and replace
+            for (let line of paylines) {
+                const blankCount = line.filter(i => reels[i] === '⚫').length;
+                if (blankCount >= 4) {
+                    resultText += '4+ Blanks in a row! Replacing... ';
+                    playSound(500, 0.5, 'triangle'); // Replace with: new Audio('blank_replace.mp3').play();
+                    for (let i of line) {
+                        if (reels[i] === '⚫') {
+                            const reelElement = document.getElementById(`reel-${i}`);
+                            reelElement.classList.add('blank-replace');
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            reels[i] = getRandomSymbol();
+                            reelElement.innerText = reels[i];
+                            reelElement.classList.remove('blank-replace');
+                        }
+                    }
+                }
+            }
+
+            // Check paylines after replacement
+            for (let line of paylines) {
+                let counts = {};
+                let wilds = 0;
+                line.forEach(i => {
+                    if (reels[i] === '🐉') wilds++;
+                    else counts[reels[i]] = (counts[reels[i]] || 0) + 1;
+                });
+
+                let maxSymbol = '⚫';
+                let maxCount = 0;
+                for (let sym in counts) {
+                    if (sym !== '⚫' && counts[sym] > maxCount) {
+                        maxSymbol = sym;
+                        maxCount = counts[sym];
+                    }
+                }
+                let effectiveCount = maxCount + wilds;
+
+                if (effectiveCount >= 4 && maxSymbol !== '⚫') {
+                    line.forEach(i => document.getElementById(`reel-${i}`).classList.add('win'));
+                    playSound(800, 0.5, 'sine'); // Replace with: new Audio('win.mp3').play();
+                    if (effectiveCount >= 5) {
+                        if (maxSymbol === '👑') winnings += 100 * 10;
+                        else if (maxSymbol === '⚔️' || maxSymbol === '🛡️') winnings += 20 * 10;
+                        else if (maxSymbol === '🪙') winnings += 10 * 10;
+                        resultText += `5 ${maxSymbol} in a row! `;
+                    } else {
+                        winnings += 5 * 10;
+                        resultText += `4 ${maxSymbol} in a row! `;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    line.forEach(i => document.getElementById(`reel-${i}`).classList.remove('win'));
+                }
+            }
+
+            // Check for bonuses
+            for (let line of paylines) {
+                if (line.every(i => reels[i] === '🪙' || reels[i] === '🐉')) {
+                    winnings += 10 * 10;
+                    resultText += '5 Coins in a row! Treasury Spin: +50 coins! ';
+                    winnings += 50;
+                    playSound(600, 1, 'square'); // Replace with: new Audio('bonus.mp3').play();
+                    break;
+                }
+                if (line.every(i => reels[i] === '🐉')) {
+                    const multiplier = Math.floor(Math.random() * 46) + 5;
+                    winnings += 10 * multiplier;
+                    resultText += `5 Dragons in a row! Dragon’s Wheel: ${multiplier}x! `;
+                    playSound(400, 1.5, 'sawtooth'); // Replace with: new Audio('dragon_bonus.mp3').play();
+                    break;
+                }
+            }
+
+            balance += winnings;
+            document.getElementById('balance').innerText = `Balance: ${balance} Coins`;
+            document.getElementById('result').innerText = winnings > 0 ? `Won ${winnings} coins! ${resultText}` : 'No win this time.';
+        }
+    </script>
+</body>
+</html>
