@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dragon's Hoard Slot Machine</title>
     <style>
         body {
@@ -135,6 +136,95 @@
             color: #d4a017;
             box-shadow: inset 0 0 5px rgba(212, 160, 23, 0.5);
         }
+        /* iPhone-specific adjustments */
+        @media (max-width: 430px) {
+            body {
+                padding: 10px;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                -webkit-user-select: none;
+                overflow-x: hidden;
+            }
+            #slot-machine {
+                grid-template-rows: repeat(3, 18vw);
+                grid-template-columns: repeat(5, 18vw);
+                gap: 1vw;
+                margin: 10px auto;
+                width: 90vw;
+                padding: 2vw;
+                border: 1.5vw solid #d4a017;
+                border-radius: 2vw;
+                box-shadow: 0 0 4vw rgba(212, 160, 23, 0.8), inset 0 0 3vw rgba(212, 160, 23, 0.5);
+                -webkit-tap-highlight-color: transparent;
+            }
+            #slot-machine::before {
+                top: -5vw;
+                font-size: 6vw;
+                text-shadow: 0 0 2vw #ff0000;
+            }
+            .reel {
+                font-size: 10vw;
+                border: 0.6vw solid #8b5a2b;
+                border-radius: 1.5vw;
+                box-shadow: inset 0 0 1vw rgba(0, 0, 0, 0.5);
+            }
+            .shield span {
+                text-shadow: 0.4vw 0.4vw 0 #000, -0.4vw -0.4vw 0 #000, 0.4vw -0.4vw 0 #000, -0.4vw 0.4vw 0 #000;
+            }
+            .jackpot::after {
+                font-size: 3vw;
+                top: 1vw;
+                right: 1vw;
+                text-shadow: 0 0 1vw #ff0000;
+            }
+            @keyframes spin {
+                0% { transform: translateY(0); opacity: 1; }
+                50% { transform: translateY(-9vw); opacity: 0.5; }
+                100% { transform: translateY(-18vw); opacity: 0; }
+            }
+            @keyframes drop {
+                0% { transform: translateY(0) scale(1); opacity: 1; }
+                30% { transform: translateY(-4vw) scale(1.2); opacity: 0.8; }
+                60% { transform: translateY(18vw); opacity: 0; }
+                100% { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes glow {
+                0% { background-color: #fff9e6; box-shadow: 0 0 1vw #ffd700; }
+                50% { background-color: #ffd700; box-shadow: 0 0 4vw #ffd700; }
+                100% { background-color: #fff9e6; box-shadow: 0 0 1vw #ffd700; }
+            }
+            #controls {
+                margin: 10px;
+            }
+            #result, #balance {
+                font-size: 4vw;
+                margin: 5px;
+            }
+            button {
+                padding: 2vw 4vw;
+                font-size: 3vw;
+                border: 0.6vw solid #8b5a2b;
+                border-radius: 1.5vw;
+                box-shadow: 0 0 2vw rgba(212, 160, 23, 0.5);
+                -webkit-tap-highlight-color: transparent;
+            }
+            button:hover, button:active {
+                box-shadow: 0 0 3vw #ffd700;
+            }
+            #odds {
+                width: 90vw;
+                margin: 10px auto;
+                font-size: 2.5vw;
+            }
+            .odds-item {
+                padding: 1.5vw;
+                border: 0.4vw solid #d4a017;
+                border-radius: 1vw;
+                width: 15vw;
+            }
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -157,7 +247,7 @@
 
     <script>
         const symbols = ['👑', '⚔️', '🛡️', '🪙', '🐉', '⚫'];
-        const weights = [5, 5, 5, 5, 4, 6]; // Crown, Sword, Shield, Coin, Dragon, Blank
+        const weights = [5, 5, 5, 5, 4, 6];
         const nonBlankSymbols = ['👑', '⚔️', '🛡️', '🪙', '🐉'];
         const nonBlankWeights = [5, 5, 5, 5, 4];
         const reels = Array(15).fill('');
@@ -263,7 +353,6 @@
             osc2.stop(audioCtx.currentTime + 1.5);
         }
 
-        // Initialize the slot machine grid
         const slotMachine = document.getElementById('slot-machine');
         for (let i = 0; i < 15; i++) {
             const reel = document.createElement('div');
