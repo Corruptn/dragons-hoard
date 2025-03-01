@@ -120,9 +120,14 @@
             box-shadow: 0 0 10px rgba(212, 160, 23, 0.5);
             transition: all 0.3s ease;
         }
-        button:hover {
+        button:hover:not(:disabled) {
             background: linear-gradient(#e6b923, #d4a017);
             box-shadow: 0 0 15px #ffd700;
+        }
+        button:disabled {
+            background: linear-gradient(#8b5a2b, #5c4033);
+            cursor: not-allowed;
+            opacity: 0.6;
         }
         #odds, #payouts {
             margin: 20px auto;
@@ -244,8 +249,13 @@
                 box-shadow: 0 0 1.5vw rgba(212, 160, 23, 0.5);
                 -webkit-tap-highlight-color: transparent;
             }
-            button:hover, button:active {
+            button:hover:not(:disabled) {
                 box-shadow: 0 0 2vw #ffd700;
+            }
+            button:disabled {
+                background: linear-gradient(#8b5a2b, #5c4033);
+                cursor: not-allowed;
+                opacity: 0.6;
             }
             #odds, #payouts {
                 width: 85vw;
@@ -273,7 +283,7 @@
     <h1>Dragon's Hoard Slot Machine</h1>
     <div id="slot-machine"></div>
     <div id="controls">
-        <button onclick="spin()">Spin (10 Coins)</button>
+        <button id="spinButton" onclick="spin()">Spin (10 Coins)</button>
     </div>
     <div id="balance">Balance: 1000 Coins</div>
     <div id="result"></div>
@@ -301,8 +311,10 @@
         const reels = Array(15).fill('');
         const jackpot = Array(15).fill(false);
         let balance = 1000;
+        let isSpinning = false; // Spin lock flag
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const spinButton = document.getElementById('spinButton');
 
         function playSpinSound() {
             const osc1 = audioCtx.createOscillator();
@@ -478,7 +490,6 @@
                 slotMachine.appendChild(paylineDiv);
 
                 paylineDiv.style.left = `${padding + border}px`;
-                // Adjust width based on effectiveCount
                 paylineDiv.style.width = effectiveCount === 4 ? `${4 * reelWidth + 3 * gap}px` : `${5 * reelWidth + 4 * gap}px`;
 
                 if (JSON.stringify(line) === JSON.stringify([5, 6, 7, 8, 9])) {
@@ -494,8 +505,7 @@
                     setTimeout(() => paylineDiv.remove(), 300);
                 }, 1200);
             } else {
-                // Diagonal paylines: draw segments up to effectiveCount
-                const limit = effectiveCount === 4 ? 3 : 4; // 3 segments for 4, 4 for 5
+                const limit = effectiveCount === 4 ? 3 : 4;
                 for (let i = 0; i < limit; i++) {
                     const startIdx = line[i];
                     const endIdx = line[i + 1];
@@ -531,10 +541,16 @@
         }
 
         async function spin() {
+            if (isSpinning) return; // Prevent spin if already spinning
+            isSpinning = true;
+            spinButton.disabled = true;
+
             document.querySelectorAll('.payline').forEach(line => line.remove());
 
             if (balance < 10) {
                 document.getElementById('result').innerText = 'Not enough coins!';
+                isSpinning = false;
+                spinButton.disabled = false;
                 return;
             }
             balance -= 10;
@@ -585,6 +601,8 @@
                 balance += winnings;
                 document.getElementById('balance').innerText = `Balance: ${balance} Coins`;
                 document.getElementById('result').innerText = `Won ${winnings} coins! ${resultText}`;
+                isSpinning = false;
+                spinButton.disabled = false;
                 return;
             }
 
@@ -715,7 +733,7 @@
                 let effectiveCount = count + wilds;
                 if (effectiveCount >= 4 && maxSymbol !== null) {
                     group.forEach(i => document.getElementById(`reel-${i}`).classList.add('win'));
-                    drawPayline(line, effectiveCount); // Pass effectiveCount
+                    drawPayline(line, effectiveCount);
                     playWinSound();
                     let lineWinnings = 0;
                     if (effectiveCount >= 5) {
@@ -772,7 +790,7 @@
                 }
 
                 if (coinCount >= 4) {
-                    drawPayline(line, coinCount); // Pass coinCount
+                    drawPayline(line, coinCount);
                     let coinWinnings = 10 * 10;
                     if (coinJackpotCount > 0) {
                         const multiplier = Math.pow(5, coinJackpotCount);
@@ -788,7 +806,7 @@
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 }
                 if (dragonCount >= 4) {
-                    drawPayline(line, dragonCount); // Pass dragonCount
+                    drawPayline(line, dragonCount);
                     const multiplier = Math.floor(Math.random() * 46) + 5;
                     let dragonWinnings = 10 * multiplier;
                     if (dragonJackpotCount > 0) {
@@ -874,7 +892,7 @@
                     let effectiveCount = count + wilds;
                     if (effectiveCount >= 4 && maxSymbol !== null) {
                         group.forEach(i => document.getElementById(`reel-${i}`).classList.add('win'));
-                        drawPayline(line, effectiveCount); // Pass effectiveCount
+                        drawPayline(line, effectiveCount);
                         playWinSound();
                         let lineWinnings = 0;
                         if (effectiveCount >= 5) {
@@ -931,7 +949,7 @@
                     }
 
                     if (coinCount >= 4) {
-                        drawPayline(line, coinCount); // Pass coinCount
+                        drawPayline(line, coinCount);
                         let coinWinnings = 10 * 10;
                         if (coinJackpotCount > 0) {
                             const multiplier = Math.pow(5, coinJackpotCount);
@@ -947,7 +965,7 @@
                         await new Promise(resolve => setTimeout(resolve, 1500));
                     }
                     if (dragonCount >= 4) {
-                        drawPayline(line, dragonCount); // Pass dragonCount
+                        drawPayline(line, dragonCount);
                         const multiplier = Math.floor(Math.random() * 46) + 5;
                         let dragonWinnings = 10 * multiplier;
                         if (dragonJackpotCount > 0) {
@@ -968,6 +986,8 @@
             balance += winnings;
             document.getElementById('balance').innerText = `Balance: ${balance} Coins`;
             document.getElementById('result').innerText = winnings > 0 ? `Won ${winnings} coins! ${resultText}` : 'No win this time.';
+            isSpinning = false;
+            spinButton.disabled = false; // Re-enable button after spin completes
         }
     </script>
 </body>
